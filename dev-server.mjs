@@ -1,7 +1,0 @@
-// Local API adapter. Requires a real Upstash database; no fake persistence.
-import http from 'node:http';
-import {readFile} from 'node:fs/promises';
-import path from 'node:path';
-import {createHandler} from './lib/api.js';
-const mime={'.html':'text/html; charset=utf-8','.css':'text/css; charset=utf-8','.js':'text/javascript; charset=utf-8'};
-http.createServer(async(req,res)=>{const url=new URL(req.url,'http://localhost');if(url.pathname.startsWith('/api/')){const route=url.pathname.slice(5);if(!['karte','posts','all'].includes(route)){res.writeHead(404);res.end();return;}let raw='';for await(const chunk of req){raw+=chunk;if(raw.length>50000){res.writeHead(413);res.end();return;}}req.body=raw||undefined;req.query=Object.fromEntries(url.searchParams);res.status=n=>{res.statusCode=n;return res;};res.json=value=>{res.setHeader('Content-Type','application/json');res.end(JSON.stringify(value));};await createHandler(route)(req,res);return;}const filename=url.pathname==='/'?'index.html':url.pathname.slice(1);if(filename.includes('..')||!['index.html','admin.html','overview.html','style.css','app.js','overview.js','content.js','common.js'].includes(filename)){res.writeHead(404);res.end();return;}try{const file=await readFile(path.join(import.meta.dirname,'public',filename));res.setHeader('Content-Type',mime[path.extname(filename)]);res.end(file);}catch{res.writeHead(404);res.end();}}).listen(3000,()=>console.log('Local app: http://localhost:3000'));

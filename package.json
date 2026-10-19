@@ -4,14 +4,27 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "test": "node test/api.test.js",
-    "dev": "node dev-server.mjs",
-    "check": "node --check public/app.js && node --check public/overview.js && node --check public/common.js && node --check public/content.js && node --check lib/api.js && node --check lib/redis.js && node --check dev-server.mjs"
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "test": "node --test test/*.test.js",
+    "check": "tsc --noEmit && node --check lib/api.js && node --check lib/redis.js",
+    "test:e2e": "playwright test"
   },
   "dependencies": {
-    "@upstash/redis": "^1.35.0"
+    "@upstash/redis": "^1.35.0",
+    "next": "^16.4.2",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1"
   },
   "engines": {
     "node": ">=22"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.64.1",
+    "@types/node": "^26.6.5",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "typescript": "^7.0.2"
   }
 }
