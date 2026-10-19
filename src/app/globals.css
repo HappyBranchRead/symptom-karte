@@ -43,6 +43,19 @@ main.overview {max-width:1240px;}
 .section-title {display:flex;align-items:center;gap:12px;font-size:20px;margin:0 0 20px;}
 .section-title::before {content:'';width:4px;height:21px;background:var(--accent);border-radius:1px;flex-shrink:0;}
 .workshop-section + .workshop-section {margin-top:36px;}
+.workshop-description {font-size:14px;line-height:1.95;margin:0 0 18px;}
+.workshop-topics {display:grid;grid-template-columns:1fr 1fr;gap:0 24px;list-style:none;margin:0;padding:0;}
+.workshop-topics li {display:flex;align-items:center;gap:16px;padding:14px 0;border-bottom:1px solid var(--line);font-size:15px;}
+.workshop-topics .chart-number {flex-shrink:0;}
+.workshop-flow {counter-reset:workshop-step;list-style:none;padding:0;margin:0;}
+.workshop-flow li {position:relative;padding:0 0 20px 42px;counter-increment:workshop-step;}
+.workshop-flow li::before {content:counter(workshop-step,decimal-leading-zero);position:absolute;left:0;top:2px;color:var(--accent);font-family:ui-monospace,SFMono-Regular,Consolas,monospace;font-size:17px;}
+.workshop-flow strong {display:block;font-size:15px;}
+.workshop-flow li > span {display:block;font-size:14px;color:var(--muted);}
+.workshop-start {padding-top:8px;}
+.primary-link {display:inline-flex;align-items:center;justify-content:center;min-height:48px;padding:12px 24px;border-radius:5px;background:var(--accent);color:var(--button-ink);font-size:15px;font-weight:600;text-decoration:none;}
+.primary-link:hover {filter:brightness(.94);}
+.back-link {display:inline-block;font-size:13px;margin-bottom:20px;}
 .section-head {display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:16px;}
 .connection,.field-status {font-size:12px;color:var(--muted);}
 .grid {display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:24px;}
@@ -145,6 +158,8 @@ html[data-theme=dark] {
  .clinical-entry > .symptom-text {padding-left:16px;}
 }
 @media(max-width:540px) {
+ .workshop-topics {grid-template-columns:1fr;}
+ .workshop-start .primary-link {display:flex;width:100%;padding:12px;}
  header {padding:16px 18px;gap:10px;}
  .brand {gap:8px;font-size:17px;letter-spacing:0;}
  .brand-mark {width:28px;height:28px;font-size:23px;border-radius:5px;}

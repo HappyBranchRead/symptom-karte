@@ -12,5 +12,5 @@ export function Header() {
   const theme = dark ? 'light' : 'dark';
   document.documentElement.dataset.theme = theme; storage('setItem', 'karte-theme', theme);
  }
- return <header><Link className="brand" href="/overview"><span className="brand-mark" aria-hidden="true">＋</span>AI開発クリニック</Link><nav>{pathname !== '/overview' && <Link href="/overview">チームのカルテ ↗</Link>}<button type="button" className="theme-toggle" aria-label="配色を切り替え" onClick={toggle}>◐</button></nav></header>;
+ return <header><Link className="brand" href="/"><span className="brand-mark" aria-hidden="true">＋</span>AI開発クリニック</Link><nav>{pathname !== '/overview' && <Link href="/overview">チームのカルテ ↗</Link>}<button type="button" className="theme-toggle" aria-label="配色を切り替え" onClick={toggle}>◐</button></nav></header>;
 }

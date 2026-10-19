@@ -31,8 +31,10 @@ test('mobile selection, atomic save, reload, overview and old URLs work', async 
  await workshop(context);
  const errors: string[] = []; page.on('pageerror', error => errors.push(error.message));
  await page.goto('/');
- await expect(page).toHaveURL(/\/overview$/);
- const initialHeadings = await page.locator('main > h1, main > section > h2').allTextContents();
+ await expect(page).toHaveURL(/\/$/);
+ await expect(page.getByRole('heading', {name: '今回の課題'})).toBeVisible();
+ await expect(page.locator('.workshop-topics li')).toHaveCount(4);
+ await expect(page.locator('.case-picker-track')).toHaveCount(0);
  const projectDetails = page.locator('.project-details');
  await expect(projectDetails).not.toHaveAttribute('open');
  await expect(page.locator('.feature-flow')).toBeHidden();
@@ -46,6 +48,9 @@ test('mobile selection, atomic save, reload, overview and old URLs work', async 
  await page.setViewportSize({width: 1280, height: 900});
  await page.screenshot({path: 'test-results/home-desktop.png', fullPage: true});
  await page.setViewportSize({width: 375, height: 812});
+ await page.getByRole('link', {name: 'カルテを選んでワークを始める →'}).click();
+ await expect(page).toHaveURL(/\/overview$/);
+ const initialHeadings = await page.locator('main > h1, main > section > h2').allTextContents();
  await page.getByRole('link', {name: /カルテ 01/}).click();
  await expect(page.getByRole('status').filter({hasText: '共有中'})).toBeVisible();
  await expect(page.getByRole('heading', {name: 'この場面でのAIと人の作業'})).toBeHidden();
@@ -63,7 +68,8 @@ test('mobile selection, atomic save, reload, overview and old URLs work', async 
  await page.getByRole('link', {name: 'チームのカルテ ↗'}).click();
  await expect(page).toHaveURL(/\/overview$/);
  expect(await page.locator('main > h1, main > section > h2').allTextContents()).toEqual(initialHeadings);
- await expect(page.locator('.project-summary')).toBeVisible();
+ await expect(page.locator('.project-summary')).toHaveCount(0);
+ await expect(page.getByRole('link', {name: '← プロジェクト概要・ワークの進め方'})).toBeVisible();
  await expect(page.locator('.project-reference')).toHaveCount(0);
  await page.setViewportSize({width: 1280, height: 900});
  await expect(page.getByText('原因のテスト')).toBeVisible();
@@ -109,7 +115,7 @@ test('two participants keep drafts through conflicts and failed saves', async ({
 test('mobile picker selects by arrows, keyboard and touch before opening a chart', async ({page, context}) => {
  await workshop(context);
  await page.emulateMedia({reducedMotion: 'reduce'});
- await page.goto('/');
+ await page.goto('/overview');
  const position = page.locator('.case-picker-position');
  const track = page.getByRole('region', {name: 'カルテを選ぶ'});
  await expect(position).toHaveText('1 / 4');
@@ -144,7 +150,7 @@ test('mobile picker selects by arrows, keyboard and touch before opening a chart
  await expect(page.locator('.case-picker-track')).toHaveCount(0);
  await expect(page.getByText(/グループ\s*4/)).toHaveCount(0);
  await page.setViewportSize({width: 1280, height: 900});
- await page.goto('/');
+ await page.goto('/overview');
  await expect(page.locator('.case-picker-controls')).toBeHidden();
  await expect(page.locator('.overview-item')).toHaveCount(4);
  const cards = await page.locator('.overview-item').evaluateAll(elements => elements.map(element => {
@@ -168,10 +174,12 @@ test('project context survives overview navigation and loading shows an indicato
  });
  await context.route('**/api/karte?group=1', async route => {await chartLoad; await route.fulfill({json: chart});});
  await page.goto('/');
+ await expect(page.locator('.project-summary')).toBeVisible();
+ await page.getByRole('link', {name: 'カルテを選んでワークを始める →'}).click();
  await expect(page).toHaveURL(/\/overview$/);
  await expect(page.getByRole('status').filter({hasText: 'カルテを読み込み中'})).toBeVisible();
  await expect(page.getByRole('button', {name: '再読み込み'})).toHaveCount(0);
- await expect(page.locator('.project-summary')).toBeVisible();
+ await expect(page.getByRole('link', {name: '← プロジェクト概要・ワークの進め方'})).toBeVisible();
  failRequest();
  await expect(page.getByRole('alert').filter({hasText: '取得に失敗しました'})).toBeVisible();
  await page.getByRole('button', {name: '再読み込み'}).click();
