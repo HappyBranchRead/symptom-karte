@@ -17,9 +17,7 @@ async function refresh(){if(refreshing)return;refreshing=true;try{const result=a
 $('export').onclick=()=>{
  if(!data){$('status').textContent='読み込み後に記録を保存できます';return;}
  const text='# AI駆動開発 症状カルテ\n\n'+new Date().toLocaleString('ja-JP')+'\n\n'+data.groups.map(g=>{
-  const sections=Object.entries(summaryLabels).map(([field,label])=>'### '+label+'\n\n'+(g[field]||'（未入力）'));
-  sections.push('### みんなの気づき\n\n'+g.posts.map(p=>'- ['+(p.kind==='remedy'?'打ち手':'原因・気づき')+'] '+p.text.replaceAll('\n','\n  ')).join('\n'));
-  if(g.legacy.causes||g.legacy.links)sections.push('### これまでの議論\n\n'+[g.legacy.causes,g.legacy.links].filter(Boolean).join('\n\n'));
+  const sections=['### 現在の症状\n\n'+cases[g.group-1].symptom,...Object.entries(summaryLabels).map(([field,label])=>'### '+label+'\n\n'+(g[field]||'（未入力）'))];
   return '## グループ'+g.group+'：'+cases[g.group-1].name+'\n\n'+sections.join('\n\n');
  }).join('\n\n---\n\n');
  const url=URL.createObjectURL(new Blob([text],{type:'text/markdown;charset=utf-8'}));const a=node('a');a.href=url;a.download='症状カルテ-'+new Date().toISOString().slice(0,10)+'.md';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);

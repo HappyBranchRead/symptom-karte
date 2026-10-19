@@ -8,15 +8,12 @@ export async function api(path,options={}){
 }
 export const time=value=>value?new Date(value).toLocaleTimeString('ja-JP',{hour:'2-digit',minute:'2-digit'}):'';
 export function node(tag,text,className){const el=document.createElement(tag);if(text!==undefined)el.textContent=text;if(className)el.className=className;return el;}
-export const summaryLabels={root:'一番の原因',remedy:'選んだ打ち手'};
-export function note(post){const el=node('article',undefined,'note '+post.kind);el.dataset.postId=post.id;el.append(node('span',post.kind==='remedy'?'打ち手のアイデア':'原因・気づき','note-kind'),node('p',post.text,'answer'),node('small',time(post.createdAt)));return el;}
+export const summaryLabels={root:'原因分析',remedy:'処方'};
 export function chart(data,{large=false}={}){
  const c=cases[data.group-1],el=node('article',undefined,'case-card chart'+(large?' chart-large':''));
- el.append(node('div','GROUP 0'+data.group,'eyebrow'),node('h2',c.name),node('p',c.symptom,'symptom-text'));
+ el.append(node('div','GROUP 0'+data.group,'eyebrow'),node('h2',c.name),node('h3','現在の症状'),node('p',c.symptom,'symptom-text'));
  const summary=node('div',undefined,'chart-summary');
- for(const [key,label] of Object.entries(summaryLabels)){const block=node('section');block.append(node('h3',label),node('p',data[key]||'議論をまとめているところです','answer'+(data[key]?'':' placeholder')));summary.append(block);}el.append(summary);
- el.append(node('div',data.posts.length+'件の気づき'+(data.updatedAt?' · '+time(data.updatedAt)+' 更新':''),'chart-meta'));
- if(large){el.append(node('h3','みんなの気づき'));const notes=node('div',undefined,'notes-grid');notes.append(...data.posts.map(note));if(!data.posts.length)notes.append(node('p','気づきはこれから集まります','placeholder'));el.append(notes);if(data.legacy.causes||data.legacy.links){const legacy=node('details',undefined,'context');legacy.append(node('summary','これまでの議論'),node('p',[data.legacy.causes,data.legacy.links].filter(Boolean).join('\n\n'),'answer'));el.append(legacy);}}
+ for(const [key,label] of Object.entries(summaryLabels)){const block=node('section');block.append(node('h3',label),node('p',data[key]||'まだ記入されていません','answer'+(data[key]?'':' placeholder')));summary.append(block);}el.append(summary);
  return el;
 }
 const saved=storage('getItem','karte-theme');if(saved)document.documentElement.dataset.theme=saved;
