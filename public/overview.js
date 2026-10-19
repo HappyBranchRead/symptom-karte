@@ -3,7 +3,7 @@ import {$,storage,api,node,chart,summaryLabels} from './common.js';
 const raw=new URLSearchParams(location.search).get('group')||storage('getItem','karte-last-group');const group=/^[1-4]$/.test(raw||'')?Number(raw):0;
 if(group){$('back').href='/?g='+group;$('back').textContent='自分のカルテに戻る';}
 let data=null,index=0,refreshing=false,signature='';
-function showDetail(){if(!data)return;const position=$('detail').scrollTop;$('detail-content').replaceChildren(chart(data.groups[index],{large:true}));$('page-number').textContent=(index+1)+' / 4';$('previous').disabled=index===0;$('next').disabled=index===3;$('detail').scrollTop=position;}
+function showDetail(){if(!data)return;const selectedGroup=data.groups[index].group;$('join-group').href='/?g='+selectedGroup;$('join-group').textContent='グループ'+selectedGroup+'に参加して書き込む →';const position=$('detail').scrollTop;$('detail-content').replaceChildren(chart(data.groups[index],{large:true}));$('page-number').textContent=(index+1)+' / 4';$('previous').disabled=index===0;$('next').disabled=index===3;$('detail').scrollTop=position;}
 $('close').onclick=()=>$('detail').close();$('previous').onclick=()=>{index=Math.max(0,index-1);showDetail();$('detail').scrollTop=0;};$('next').onclick=()=>{index=Math.min(3,index+1);showDetail();$('detail').scrollTop=0;};
 function render(){
  const focus=document.activeElement?.dataset.openGroup;
