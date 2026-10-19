@@ -6,7 +6,7 @@
   "scripts": {
     "test": "node test/api.test.js",
     "dev": "node dev-server.mjs",
-    "check": "node --check public/app.js && node --check public/admin.js && node --check public/common.js && node --check public/content.js && node --check lib/api.js && node --check dev-server.mjs"
+    "check": "node --check public/app.js && node --check public/overview.js && node --check public/common.js && node --check public/content.js && node --check lib/api.js && node --check lib/redis.js && node --check dev-server.mjs"
   },
   "dependencies": {
     "@upstash/redis": "^1.35.0"
