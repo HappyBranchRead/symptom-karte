@@ -15,7 +15,7 @@
 | `UPSTASH_REDIS_REST_TOKEN` | UpstashのRESTトークン |
 | `ADMIN_PASS` | ファシリテーターの合言葉（8文字以上） |
 
-Marketplaceが `KV_REST_API_URL` / `KV_REST_API_TOKEN` を設定した場合も対応しています。RedisのTCP接続URLとは異なります。環境変数の変更後はRedeployしてください。
+Marketplaceが `KV_REST_API_URL` / `KV_REST_API_TOKEN` を設定した場合も対応しています。`example_KV_REST_API_URL` / `example_KV_REST_API_TOKEN` のように接頭辞が付いた組み合わせも自動検出します。同じ接頭辞のURLと書き込み用TOKENを使用し、READ_ONLY_TOKENは使用しません。複数の接続先がある場合は接頭辞なしの標準変数名で使用先を指定してください。RedisのTCP接続URLとは異なります。環境変数の変更後はRedeployしてください。
 
 5. デプロイされたURLの `/admin.html` にアクセスして合言葉で入り、全入力をリセットします。
 6. `/?g=1`、`/?g=2`、`/?g=3`、`/?g=4` を各グループに配布します。管理画面下部にも配布用URLがあります。これらのURLをQRコード化して配布してください。

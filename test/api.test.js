@@ -1,9 +1,24 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {createHandler,TTL} from '../lib/api.js';
+import {createHandler,TTL,redisConfig} from '../lib/api.js';
 process.env.ADMIN_PASS='test-password';
 function setup(){const store=new Map(),writes=[];const db={get:async k=>store.get(k),set:async(k,v,opts)=>{store.set(k,v);writes.push({k,opts});},mget:async(...keys)=>keys.map(k=>store.get(k)),multi(){const ops=[];return {del(...keys){ops.push(()=>keys.forEach(k=>store.delete(k)));},set(k,v,opts){ops.push(()=>{store.set(k,v);writes.push({k,opts});});},async exec(){ops.forEach(fn=>fn());}};}};return {store,writes,async call(route,method='GET',body,pass,group='1'){let status=200,result,headers={};const req={method,body,headers:{'x-admin-pass':pass},query:{group}};const res={setHeader:(k,v)=>headers[k]=v,status(n){status=n;return this;},json(v){result=v;}};await createHandler(route,()=>db)(req,res);return {status,result,headers};}};}
 const body={causes:'<script>alert(1)</script>',links:'関係',root:'原因',remedy:'打ち手'};
+test('Redis supports standard and Marketplace-prefixed REST credentials',()=>{
+ const config={url:'https://example.upstash.io',token:'test-token'};
+ for(const prefix of ['', 'example_', 'another_store_']){
+  for(const family of ['KV_REST_API_', 'UPSTASH_REDIS_REST_']){
+   assert.deepEqual(redisConfig({[prefix+family+'URL']:config.url,[prefix+family+'TOKEN']:config.token}),config);
+  }
+ }
+ assert.deepEqual(redisConfig({example_KV_REST_API_URL:config.url,example_KV_REST_API_TOKEN:config.token,example_KV_REST_API_READ_ONLY_TOKEN:'read-only'}),config);
+});
+test('Redis never mixes incomplete pairs and rejects ambiguous databases',()=>{
+ assert.throws(()=>redisConfig({example_KV_REST_API_URL:'https://a',other_KV_REST_API_TOKEN:'b'}),/missing/);
+ assert.throws(()=>redisConfig({REDIS_URL:'redis://example'}),/missing/);
+ assert.throws(()=>redisConfig({a_KV_REST_API_URL:'https://a',a_KV_REST_API_TOKEN:'a',b_KV_REST_API_URL:'https://b',b_KV_REST_API_TOKEN:'b'}),/Multiple/);
+ assert.deepEqual(redisConfig({KV_REST_API_URL:'https://standard',KV_REST_API_TOKEN:'standard',example_KV_REST_API_URL:'https://custom',example_KV_REST_API_TOKEN:'custom'}),{url:'https://standard',token:'standard'});
+});
 test('work phase blocks public aggregate; administrator and open phase can read',async()=>{const s=setup();assert.equal((await s.call('all')).status,403);assert.equal((await s.call('all','GET',null,'wrong')).status,401);assert.equal((await s.call('all','GET',null,'test-password')).result.groups.length,4);await s.call('phase','POST',{phase:'open'},'test-password');assert.equal((await s.call('all')).status,200);});
 test('all mutating administrator endpoints require valid passphrase',async()=>{const s=setup();for(const route of ['reset','phase'])assert.equal((await s.call(route,'POST',{phase:'open'})).status,401);assert.equal((await s.call('login','POST',{pass:'wrong'})).status,401);assert.equal((await s.call('login','POST',{pass:'test-password'})).status,200);});
 test('save roundtrip preserves text and strips unknown keys, applies TTL',async()=>{const s=setup();const r=await s.call('karte','PUT',{...body,secret:'ignored'});assert.equal(r.status,200);assert.ok(r.result.updatedAt);const stored=(await s.call('karte')).result;assert.equal(stored.causes,body.causes);assert.equal(stored.secret,undefined);assert.equal(s.writes[0].opts.ex,TTL);assert.equal((await s.call('karte','GET',null,null,'2')).result.root,'');});
