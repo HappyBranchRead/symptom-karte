@@ -1,5 +1,5 @@
 import {cases} from './content.js';
-import {$,storage,api,node,chart,summaryLabels} from './common.js';
+import {$,storage,api,node,chart} from './common.js';
 const raw=new URLSearchParams(location.search).get('group')||storage('getItem','karte-last-group');const group=/^[1-4]$/.test(raw||'')?Number(raw):0;
 if(group){$('back').href='/?g='+group;$('back').textContent='自分のカルテに戻る';}
 let data=null,refreshing=false,signature='';
@@ -11,12 +11,4 @@ function render(){
  if(focus)document.querySelector('[data-open-group="'+focus+'"]')?.focus();
 }
 async function refresh(){if(refreshing)return;refreshing=true;try{const result=await api('all');data=result;const nextSignature=JSON.stringify(result);if(nextSignature!==signature){signature=nextSignature;render();}$('status').textContent='● 共有中 · '+new Date().toLocaleTimeString('ja-JP',{hour:'2-digit',minute:'2-digit'});}catch(error){$('status').textContent=data?'接続を確認中 · 最後に取得した内容を表示':error.message;}finally{refreshing=false;}}
-$('export').onclick=()=>{
- if(!data){$('status').textContent='読み込み後に記録を保存できます';return;}
- const text='# AI駆動開発 症状カルテ\n\n'+new Date().toLocaleString('ja-JP')+'\n\n'+data.groups.map(g=>{
-  const sections=['### 現在の症状\n\n'+cases[g.group-1].symptom,...Object.entries(summaryLabels).map(([field,label])=>'### '+label+'\n\n'+(g[field]||'（未入力）'))];
-  return '## グループ'+g.group+'：'+cases[g.group-1].name+'\n\n'+sections.join('\n\n');
- }).join('\n\n---\n\n');
- const url=URL.createObjectURL(new Blob([text],{type:'text/markdown;charset=utf-8'}));const a=node('a');a.href=url;a.download='症状カルテ-'+new Date().toISOString().slice(0,10)+'.md';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
-};
 refresh();setInterval(()=>{if(!document.hidden)refresh();},5000);document.addEventListener('visibilitychange',()=>{if(!document.hidden)refresh();});
