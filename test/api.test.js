@@ -7,7 +7,13 @@ function setup(){
  const db={
   get:async key=>store.get(key),mget:async(...keys)=>keys.map(k=>store.get(k)),hgetall:async key=>store.get(key),
   multi(){const ops=[];return {hset(key,values){ops.push(()=>store.set(key,{...(store.get(key)||{}),...values}));},expire(key,ttl){ops.push(()=>expirations.set(key,ttl));},async exec(){ops.forEach(op=>op());}};},
-  async eval(script,keys,args){const [field,value,expected,updatedAt,ttl]=args,key=keys[0],hash=store.get(key)||{},revision=Number(hash[field+'Rev']||0);if(revision!==expected)return [-1,revision];store.set(key,{...hash,[field]:value,[field+'Rev']:revision+1,updatedAt});expirations.set(key,ttl);return [1,revision+1];}
+  async eval(script,keys,args){
+   if(args.length===6){
+    const [root,remedy,expectedRoot,expectedRemedy,updatedAt,ttl]=args,key=keys[0],hash=store.get(key)||{},rootRev=Number(hash.rootRev||0),remedyRev=Number(hash.remedyRev||0);
+    if(rootRev!==expectedRoot||remedyRev!==expectedRemedy)return [-1,rootRev,remedyRev];
+    store.set(key,{...hash,root,remedy,rootRev:rootRev+1,remedyRev:remedyRev+1,updatedAt});expirations.set(key,ttl);return [1,rootRev+1,remedyRev+1];
+   }
+   const [field,value,expected,updatedAt,ttl]=args,key=keys[0],hash=store.get(key)||{},revision=Number(hash[field+'Rev']||0);if(revision!==expected)return [-1,revision];store.set(key,{...hash,[field]:value,[field+'Rev']:revision+1,updatedAt});expirations.set(key,ttl);return [1,revision+1];}
  };
  return {store,expirations,async call(route,method='GET',body,group='1'){
   let status=200,result,headers={};const req={method,body,headers:{},query:{group}};
@@ -68,4 +74,21 @@ test('HTML input is stored as text; unknown attributes are discarded',async()=>{
 test('unsupported methods, malformed JSON and Redis failure return JSON errors',async()=>{
  const s=setup();assert.equal((await s.call('karte','DELETE')).status,405);assert.equal((await s.call('posts','POST','{bad')).status,400);let status,result;
  await createHandler('karte',()=>{throw Error('offline');})({method:'GET',headers:{},query:{group:'1'}},{setHeader(){},status(n){status=n;return this;},json(v){result=v;}});assert.equal(status,503);assert.ok(result.error);
+});
+
+test('one group save persists both fields together and sets TTL',async()=>{
+ const s=setup();const response=await s.call('karte','PUT',{root:'原因分析',remedy:'処方',revisions:{root:0,remedy:0}});
+ assert.equal(response.status,200);assert.deepEqual(response.result.revisions,{root:1,remedy:1});
+ const card=(await s.call('karte')).result;assert.equal(card.root,'原因分析');assert.equal(card.remedy,'処方');assert.equal(s.expirations.get('board:1'),TTL);
+});
+test('a conflict in either field prevents any partial group save',async()=>{
+ const s=setup();await s.call('karte','PUT',{field:'remedy',value:'ほかの参加者の処方',revision:0});
+ const stale=await s.call('karte','PUT',{root:'古い編集',remedy:'上書き',revisions:{root:0,remedy:0}});assert.equal(stale.status,409);
+ const card=(await s.call('karte')).result;assert.equal(card.root,'');assert.equal(card.remedy,'ほかの参加者の処方');assert.deepEqual(card.revisions,{root:0,remedy:1});
+ const results=await Promise.all(['a','b'].map(value=>s.call('karte','PUT',{root:value,remedy:value,revisions:{root:0,remedy:1}})));
+ assert.deepEqual(results.map(r=>r.status).sort(),[200,409]);const winner=(await s.call('karte')).result;assert.equal(winner.root,winner.remedy);
+});
+test('group save requires two valid fields and two valid revisions',async()=>{
+ const s=setup(),valid={root:'原因',remedy:'処方',revisions:{root:0,remedy:0}};
+ for(const body of [{...valid,root:1},{...valid,remedy:'a'.repeat(2001)},{...valid,revisions:{root:0}},{...valid,revisions:{root:-1,remedy:0}}])assert.equal((await s.call('karte','PUT',body)).status,400);
 });
