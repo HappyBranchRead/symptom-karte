@@ -39,7 +39,7 @@ export function CasePicker() {
    {cases.map(c => <article key={c.group} className="case-card picker-card">
     <ChartNumber number={c.group}/>
     <h3 className="card-title">{c.name}</h3>
-    <h4 className="card-label">症状・課題</h4>
+    <h4 className="card-label">この場面の出来事</h4>
     <p className="case-scope">{c.feature} ／ {c.stages}</p>
     <p className="symptom-text">{c.summary}</p>
     <Link className="open-case" href={'/?g=' + c.group} aria-label={'カルテ 0' + c.group + '「' + c.name + '」を開く'}>カルテを開く →</Link>

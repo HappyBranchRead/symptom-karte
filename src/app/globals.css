@@ -125,6 +125,8 @@ main.overview {max-width:1240px;}
 .case-background[open] > summary {margin-bottom:16px;}
 .case-background > .case-subheading {margin:20px 0 12px;}
 .direct-entry {margin-top:22px;}
+.entry-fields {grid-template-columns:repeat(3,minmax(0,1fr));}
+.summary-card[data-field=issue] textarea {min-height:150px;}
 .summary-card {min-width:0;padding:0 22px 18px;border:1px solid var(--line);border-radius:6px;background:var(--paper);box-shadow:var(--shadow);}
 .field-label {display:block;padding:14px 0 12px;margin-bottom:16px;border-bottom:1px solid var(--line);color:var(--accent);font-size:17px;font-weight:600;letter-spacing:.06em;}
 .summary-card:last-child .field-label {border-bottom:2px solid var(--accent);padding-bottom:11px;}
@@ -209,3 +211,11 @@ html[data-theme=dark] {
 @media(prefers-reduced-motion:reduce) {
  *,*::before,*::after {scroll-behavior:auto!important;animation:none!important;transition:none!important;}
 }
+
+.discussion-hints {margin:0 0 20px;padding:14px 18px;border:1px solid var(--line);border-radius:6px;background:var(--paper);font-size:.9rem;}
+.discussion-hints summary {cursor:pointer;color:var(--accent);font-weight:600;}
+.discussion-hints p {color:var(--muted);}
+.discussion-hints dl {margin-bottom:0;}
+.discussion-hints dl > div + div {margin-top:12px;}
+.discussion-hints dt {font-weight:600;}
+.discussion-hints dd {margin:4px 0 0;line-height:1.7;}

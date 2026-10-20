@@ -21,7 +21,7 @@ test('Web adapter forwards reads and atomic saves to the existing handler', asyn
  const route = createRoute('karte', () => db);
  const read = await route(new Request('http://localhost/api/karte?group=1'));
  assert.equal(read.status, 200);
- assert.deepEqual((await read.json()).revisions, {root: 2, remedy: 3});
+ assert.deepEqual((await read.json()).revisions, {issue: 0, root: 2, remedy: 3});
  const saved = await route(new Request('http://localhost/api/karte?group=1', {method: 'PUT', body: JSON.stringify({root: '新しい原因', remedy: '新しい処方', revisions: {root: 2, remedy: 3}})}));
  assert.deepEqual((await saved.json()).revisions, {root: 3, remedy: 4});
  assert.deepEqual(captured[1], ['board:1']);

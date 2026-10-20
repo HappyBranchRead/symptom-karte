@@ -8,6 +8,11 @@ function setup(){
   get:async key=>store.get(key),mget:async(...keys)=>keys.map(k=>store.get(k)),hgetall:async key=>store.get(key),
   multi(){const ops=[];return {hset(key,values){ops.push(()=>store.set(key,{...(store.get(key)||{}),...values}));},expire(key,ttl){ops.push(()=>expirations.set(key,ttl));},async exec(){ops.forEach(op=>op());}};},
   async eval(script,keys,args){
+   if(args.length===8){
+    const [issue,root,remedy,expectedIssue,expectedRoot,expectedRemedy,updatedAt,ttl]=args,key=keys[0],hash=store.get(key)||{},issueRev=Number(hash.issueRev||0),rootRev=Number(hash.rootRev||0),remedyRev=Number(hash.remedyRev||0);
+    if(issueRev!==expectedIssue||rootRev!==expectedRoot||remedyRev!==expectedRemedy)return [-1,issueRev,rootRev,remedyRev];
+    store.set(key,{...hash,issue,root,remedy,issueRev:issueRev+1,rootRev:rootRev+1,remedyRev:remedyRev+1,updatedAt});expirations.set(key,ttl);return [1,issueRev+1,rootRev+1,remedyRev+1];
+   }
    if(args.length===6){
     const [root,remedy,expectedRoot,expectedRemedy,updatedAt,ttl]=args,key=keys[0],hash=store.get(key)||{},rootRev=Number(hash.rootRev||0),remedyRev=Number(hash.remedyRev||0);
     if(rootRev!==expectedRoot||remedyRev!==expectedRemedy)return [-1,rootRev,remedyRev];
@@ -84,11 +89,46 @@ test('one group save persists both fields together and sets TTL',async()=>{
 test('a conflict in either field prevents any partial group save',async()=>{
  const s=setup();await s.call('karte','PUT',{field:'remedy',value:'ほかの参加者の処方',revision:0});
  const stale=await s.call('karte','PUT',{root:'古い編集',remedy:'上書き',revisions:{root:0,remedy:0}});assert.equal(stale.status,409);
- const card=(await s.call('karte')).result;assert.equal(card.root,'');assert.equal(card.remedy,'ほかの参加者の処方');assert.deepEqual(card.revisions,{root:0,remedy:1});
+ const card=(await s.call('karte')).result;assert.equal(card.root,'');assert.equal(card.remedy,'ほかの参加者の処方');assert.deepEqual(card.revisions,{issue:0,root:0,remedy:1});
  const results=await Promise.all(['a','b'].map(value=>s.call('karte','PUT',{root:value,remedy:value,revisions:{root:0,remedy:1}})));
  assert.deepEqual(results.map(r=>r.status).sort(),[200,409]);const winner=(await s.call('karte')).result;assert.equal(winner.root,winner.remedy);
 });
 test('group save requires two valid fields and two valid revisions',async()=>{
  const s=setup(),valid={root:'原因',remedy:'処方',revisions:{root:0,remedy:0}};
  for(const body of [{...valid,root:1},{...valid,remedy:'a'.repeat(2001)},{...valid,revisions:{root:0}},{...valid,revisions:{root:-1,remedy:0}}])assert.equal((await s.call('karte','PUT',body)).status,400);
+});
+
+test('workshop saves the selected issue, hypothesis and experiment atomically with TTL',async()=>{
+ const s=setup();
+ s.store.set('karte:1',{root:'以前の原因',remedy:'以前の処方'});
+ const initial=(await s.call('karte')).result;
+ assert.equal(initial.issue,'');assert.equal(initial.revisions.issue,0);assert.equal(initial.root,'以前の原因');
+ const result=await s.call('karte','PUT',{issue:'今回扱う問題',root:'原因の仮説',remedy:'試すことと確かめ方',revisions:{issue:0,root:0,remedy:0}});
+ assert.equal(result.status,200);assert.deepEqual(result.result.revisions,{issue:1,root:1,remedy:1});
+ const card=(await s.call('all')).result.groups[0];
+ assert.equal(card.issue,'今回扱う問題');assert.equal(card.root,'原因の仮説');assert.equal(card.remedy,'試すことと確かめ方');
+ assert.equal(s.expirations.get('board:1'),TTL);
+});
+
+test('an issue-only change prevents a partial three-field save; old clients preserve the issue',async()=>{
+ const s=setup();
+ await s.call('karte','PUT',{field:'issue',value:'他の参加者が選んだ問題',revision:0});
+ const stale=await s.call('karte','PUT',{issue:'古い問題',root:'古い仮説',remedy:'古い処方',revisions:{issue:0,root:0,remedy:0}});
+ assert.equal(stale.status,409);
+ let card=(await s.call('karte')).result;
+ assert.equal(card.issue,'他の参加者が選んだ問題');assert.equal(card.root,'');assert.equal(card.remedy,'');
+ const oldClient=await s.call('karte','PUT',{root:'旧画面の原因',remedy:'旧画面の処方',revisions:{root:0,remedy:0}});
+ assert.equal(oldClient.status,200);
+ card=(await s.call('karte')).result;
+ assert.equal(card.issue,'他の参加者が選んだ問題');assert.deepEqual(card.revisions,{issue:1,root:1,remedy:1});
+ const outdated=await s.call('karte','PUT',{issue:'上書き',root:'上書き',remedy:'上書き',revisions:{issue:1,root:0,remedy:0}});
+ assert.equal(outdated.status,409);assert.equal((await s.call('karte')).result.root,'旧画面の原因');
+});
+
+test('new workshop saves require three valid texts and revision numbers',async()=>{
+ const s=setup(),valid={issue:'問題',root:'仮説',remedy:'処方',revisions:{issue:0,root:0,remedy:0}};
+ for(const body of [{...valid,issue:1},{...valid,issue:'a'.repeat(2001)},{...valid,revisions:{root:0,remedy:0}},{...valid,revisions:{issue:-1,root:0,remedy:0}},{...valid,revisions:{issue:0,root:0}}])assert.equal((await s.call('karte','PUT',body)).status,400);
+ const results=await Promise.all(['A','B'].map(value=>s.call('karte','PUT',{...valid,issue:value,root:value,remedy:value})));
+ assert.deepEqual(results.map(r=>r.status).sort(),[200,409]);
+ const card=(await s.call('karte')).result;assert.equal(card.issue,card.root);assert.equal(card.root,card.remedy);
 });

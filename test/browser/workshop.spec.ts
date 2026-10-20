@@ -13,15 +13,15 @@ test('Next.js serves JSON API validation and security headers without Redis', as
  expect((await request.get('/api/unknown')).status()).toBe(404);
 });
 async function workshop(context: BrowserContext) {
- const charts = [1, 2, 3, 4].map(group => ({group, root: '', remedy: '', revisions: {root: 0, remedy: 0}, updatedAt: null}));
+ const charts = [1, 2, 3, 4].map(group => ({group, issue: '', root: '', remedy: '', revisions: {issue: 0, root: 0, remedy: 0}, updatedAt: null}));
  await context.route('**/api/**', async route => {
   const request = route.request(), url = new URL(request.url());
   if (url.pathname === '/api/all') return route.fulfill({json: {groups: charts}});
   const chart = charts[Number(url.searchParams.get('group')) - 1];
   if (request.method() === 'PUT') {
    const body = request.postDataJSON();
-   if (body.revisions.root !== chart.revisions.root || body.revisions.remedy !== chart.revisions.remedy) return route.fulfill({status: 409, json: {error: 'ほかの人がまとめを更新しました。'}});
-   chart.root = body.root; chart.remedy = body.remedy; chart.revisions.root++; chart.revisions.remedy++;
+   if (body.revisions.issue !== chart.revisions.issue || body.revisions.root !== chart.revisions.root || body.revisions.remedy !== chart.revisions.remedy) return route.fulfill({status: 409, json: {error: 'ほかの人がまとめを更新しました。'}});
+   chart.issue = body.issue; chart.root = body.root; chart.remedy = body.remedy; chart.revisions.issue++; chart.revisions.root++; chart.revisions.remedy++;
   }
   return route.fulfill({json: chart});
  });
@@ -51,20 +51,26 @@ test('mobile selection, atomic save, reload, overview and old URLs work', async 
  await page.getByRole('link', {name: 'カルテを選んでワークを始める →'}).click();
  await expect(page).toHaveURL(/\/overview$/);
  const initialHeadings = await page.locator('main > h1, main > section > h2').allTextContents();
+ const selectedSummary = await page.locator('.picker-card .symptom-text').first().innerText();
+ const selectedScope = await page.locator('.picker-card .case-scope').first().innerText();
  await page.getByRole('link', {name: /カルテ 01/}).click();
- await expect(page.getByRole('status').filter({hasText: '共有中'})).toBeVisible();
- await expect(page.getByRole('heading', {name: 'この場面でのAIと人の作業'})).toBeHidden();
+ await expect(page.locator('.case-details').getByText(selectedSummary, {exact: true})).toBeVisible();
+ await expect(page.locator('.case-details .case-scope')).toHaveText(selectedScope);
+ await expect(page.getByLabel('原因の仮説')).toBeEnabled();
+ await expect(page.getByRole('heading', {name: 'この時の進め方'})).toBeHidden();
  await page.locator('.case-background > summary').click();
- await expect(page.getByRole('heading', {name: 'この場面でのAIと人の作業'})).toBeVisible();
+ await expect(page.getByRole('heading', {name: 'この時の進め方'})).toBeVisible();
  await page.locator('.case-background > summary').click();
- await expect(page.getByText('機能や担当者が変わるたびに、同じ説明と手直しが繰り返されている。', {exact: true})).toBeVisible();
- await page.getByLabel('原因分析').fill('原因のテスト');
- await page.getByLabel('処方', {exact: true}).fill('処方のテスト');
+ await expect(page.getByText(/両方の機能はリリースできたが/)).toBeVisible();
+ await page.getByLabel('着目した問題').fill('同じ確認と修正に時間を使っている');
+ await page.getByLabel('原因の仮説').fill('原因のテスト');
+ await page.getByLabel('試す処方', {exact: true}).fill('処方のテスト');
  await page.screenshot({path: 'test-results/editor-mobile.png', fullPage: true});
  await page.getByRole('button', {name: 'カルテを保存', exact: true}).click();
  await expect(page.getByText('カルテを保存しました。')).toBeVisible();
  await page.reload();
- await expect(page.getByLabel('原因分析')).toHaveValue('原因のテスト');
+ await expect(page.getByLabel('原因の仮説')).toHaveValue('原因のテスト');
+ await expect(page.getByLabel('着目した問題')).toHaveValue('同じ確認と修正に時間を使っている');
  await page.getByRole('link', {name: 'チームのカルテ ↗'}).click();
  await expect(page).toHaveURL(/\/overview$/);
  expect(await page.locator('main > h1, main > section > h2').allTextContents()).toEqual(initialHeadings);
@@ -82,7 +88,7 @@ test('mobile selection, atomic save, reload, overview and old URLs work', async 
  await expect(page).toHaveURL(/\/overview\?group=1/);
  await expect(page.locator('.case-picker-position')).toHaveText('1 / 4');
  await page.getByRole('link', {name: /カルテ 01.*を開く/}).click();
- await expect(page.getByLabel('処方', {exact: true})).toHaveValue('処方のテスト');
+ await expect(page.getByLabel('試す処方', {exact: true})).toHaveValue('処方のテスト');
  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
  expect(errors).toEqual([]);
 });
@@ -90,15 +96,15 @@ test('two participants keep drafts through conflicts and failed saves', async ({
  await workshop(context);
  const second = await context.newPage();
  await page.goto('/?g=1'); await second.goto('/?g=1');
- await expect(page.getByRole('status').filter({hasText: '共有中'})).toBeVisible();
- await expect(second.getByRole('status').filter({hasText: '共有中'})).toBeVisible();
- await second.getByLabel('原因分析').fill('二人目の下書き');
- await page.getByLabel('原因分析').fill('一人目の保存');
+ await expect(page.getByLabel('原因の仮説')).toBeEnabled();
+ await expect(second.getByLabel('原因の仮説')).toBeEnabled();
+ await second.getByLabel('原因の仮説').fill('二人目の下書き');
+ await page.getByLabel('原因の仮説').fill('一人目の保存');
  await page.getByRole('button', {name: 'カルテを保存', exact: true}).click();
  await expect(page.getByText('カルテを保存しました。')).toBeVisible();
  await second.getByRole('button', {name: 'カルテを保存', exact: true}).click();
  await expect(second.getByRole('heading', {name: 'ほかの参加者が更新しました'})).toBeVisible();
- await expect(second.getByLabel('原因分析')).toHaveValue('二人目の下書き');
+ await expect(second.getByLabel('原因の仮説')).toHaveValue('二人目の下書き');
  await expect(second.getByText('一人目の保存', {exact: true})).toBeVisible();
  await second.getByRole('button', {name: '最新の内容を確認して編集を続ける'}).click();
  await second.route('**/api/karte?group=1', route => route.request().method() === 'PUT' ? route.abort() : route.fallback());
@@ -106,7 +112,8 @@ test('two participants keep drafts through conflicts and failed saves', async ({
  await expect(second.getByText(/通信を確認して/)).toBeVisible();
  second.once('dialog', dialog => dialog.accept());
  await second.reload();
- await expect(second.getByLabel('原因分析')).toHaveValue('二人目の下書き');
+ await expect(second.getByLabel('原因の仮説')).toHaveValue('一人目の保存');
+ await second.getByLabel('原因の仮説').fill('二人目の再入力');
  await second.unroute('**/api/karte?group=1');
  await second.getByRole('button', {name: 'カルテを保存', exact: true}).click();
  await expect(second.getByText('カルテを保存しました。')).toBeVisible();
@@ -146,7 +153,7 @@ test('mobile picker selects by arrows, keyboard and touch before opening a chart
  await expect(position).toHaveText('4 / 4');
  await page.getByRole('link', {name: /カルテ 04.*を開く/}).click();
  await expect(page).toHaveURL(/\?g=4$/);
- await expect(page.getByRole('heading', {name: 'ルールがあってもばらつく'})).toBeVisible();
+ await expect(page.getByRole('heading', {name: '2人が追加した、似た一覧画面'})).toBeVisible();
  await expect(page.locator('.case-picker-track')).toHaveCount(0);
  await expect(page.getByText(/グループ\s*4/)).toHaveCount(0);
  await page.setViewportSize({width: 1280, height: 900});
@@ -167,7 +174,7 @@ test('project context survives overview navigation and loading shows an indicato
  const retry = new Promise<void>(resolve => {completeRetry = resolve;});
  const chartLoad = new Promise<void>(resolve => {completeChart = resolve;});
  let attempts = 0;
- const chart = {group: 1, root: '', remedy: '', revisions: {root: 0, remedy: 0}, updatedAt: null};
+ const chart = {group: 1, issue: '', root: '', remedy: '', revisions: {issue: 0, root: 0, remedy: 0}, updatedAt: null};
  await context.route('**/api/all', async route => {
   if (++attempts === 1) {await failure; await route.fulfill({status: 503, json: {error: '取得に失敗しました'}});}
   else {await retry; await route.fulfill({json: {groups: [chart]}});}
@@ -195,7 +202,7 @@ test('project context survives overview navigation and loading shows an indicato
  await page.locator('.project-details > summary').click();
  await expect(page.locator('.feature-flow')).toBeVisible();
  completeChart();
- await expect(page.getByRole('status').filter({hasText: '共有中'})).toBeVisible();
+ await expect(page.getByLabel('原因の仮説')).toBeEnabled();
  await expect(page.locator('.loading-indicator')).toHaveCount(0);
  await expect(page.getByRole('button', {name: '接続を再試行'})).toHaveCount(0);
 });
@@ -204,15 +211,15 @@ test('mobile detail folds context and keeps saving accessible while editing', as
  await workshop(context);
  await page.setViewportSize({width: 427, height: 952});
  await page.goto('/?g=1');
- await expect(page.getByRole('status').filter({hasText: '共有中'})).toBeVisible();
+ await expect(page.getByLabel('原因の仮説')).toBeEnabled();
  const background = page.locator('.case-background');
  await expect(background).not.toHaveAttribute('open');
- await expect(page.getByRole('heading', {name: '起きていること'})).toBeVisible();
- await expect(page.getByRole('heading', {name: 'その影響'})).toBeVisible();
- const root = page.getByLabel('原因分析');
+ await expect(page.getByRole('heading', {name: 'この場面で起きたこと'})).toBeVisible();
+ await expect(page.getByRole('heading', {name: 'その後の状況'})).toBeVisible();
+ const root = page.getByLabel('原因の仮説');
  await root.fill('前提を読み返しながら考えた原因');
  await background.locator('summary').click();
- await expect(background.getByText('AIの作業', {exact: true})).toBeVisible();
+ await expect(background.getByText('AIに依頼したこと', {exact: true})).toBeVisible();
  await background.locator('summary').click();
  await expect(root).toHaveValue('前提を読み返しながら考えた原因');
  const save = page.getByRole('button', {name: 'カルテを保存', exact: true});
@@ -223,7 +230,7 @@ test('mobile detail folds context and keeps saving accessible while editing', as
  expect((await bounds()).position).toBe('fixed');
  expect(Math.abs((await bounds()).bottom - 952)).toBeLessThan(2);
  await page.setViewportSize({width: 427, height: 460});
- const remedy = page.getByLabel('処方', {exact: true});
+ const remedy = page.getByLabel('試す処方', {exact: true});
  await remedy.fill('検討した処方');
  await remedy.evaluate(element => element.scrollIntoView({block: 'center'}));
  const actionBounds = await bounds();
@@ -238,4 +245,49 @@ test('mobile detail folds context and keeps saving accessible while editing', as
  await expect(remedy).toHaveValue('検討した処方');
  await page.setViewportSize({width: 1280, height: 900});
  expect((await bounds()).position).toBe('static');
+});
+
+test('changing the selected problem conflicts with a concurrent hypothesis edit without losing drafts', async ({page, context}) => {
+ await workshop(context);
+ const other = await context.newPage();
+ await page.goto('/?g=1');await other.goto('/?g=1');
+ await expect(page.getByLabel('原因の仮説')).toBeEnabled();
+ await expect(other.getByLabel('原因の仮説')).toBeEnabled();
+ await page.getByLabel('着目した問題').fill('確認と修正に時間がかかる');
+ await other.getByLabel('原因の仮説').fill('参照できる情報が担当者で異なるかもしれない');
+ await page.getByRole('button', {name: 'カルテを保存', exact: true}).click();
+ await expect(page.getByText('カルテを保存しました。')).toBeVisible();
+ await other.getByRole('button', {name: 'カルテを保存', exact: true}).click();
+ await expect(other.getByRole('heading', {name: 'ほかの参加者が更新しました'})).toBeVisible();
+ await expect(other.getByText('確認と修正に時間がかかる', {exact: true})).toBeVisible();
+ await expect(other.getByLabel('原因の仮説')).toHaveValue('参照できる情報が担当者で異なるかもしれない');
+ await other.getByRole('button', {name: '最新の内容を確認して編集を続ける'}).click();
+ await expect(other.getByLabel('着目した問題')).toHaveValue('確認と修正に時間がかかる');
+ await other.getByRole('button', {name: 'カルテを保存', exact: true}).click();
+ await expect(other.getByText('カルテを保存しました。')).toBeVisible();
+ await page.reload();
+ await expect(page.getByLabel('着目した問題')).toHaveValue('確認と修正に時間がかかる');
+ await expect(page.getByLabel('原因の仮説')).toHaveValue('参照できる情報が担当者で異なるかもしれない');
+});
+
+
+test('stale empty local drafts do not hide the saved answers when opening a chart', async ({page, context}) => {
+ await workshop(context);
+ await page.goto('/?g=1');
+ await expect(page.getByLabel('原因の仮説')).toBeEnabled();
+ await page.getByLabel('原因の仮説').fill('これはテスト\nこれはサンプル');
+ await page.getByRole('button', {name: 'カルテを保存', exact: true}).click();
+ await expect(page.getByText('カルテを保存しました。')).toBeVisible();
+ await page.evaluate(() => localStorage.setItem('karte-summary-draft-1-root', JSON.stringify({value: '', revision: 0, expiresAt: Date.now() + 604800000})));
+ await page.goto('/overview');
+ await page.setViewportSize({width: 1280, height: 900});
+ await expect(page.locator('.overview-grid').getByText('これはテスト\nこれはサンプル', {exact: true})).toBeVisible();
+ await page.locator('.overview-grid').getByRole('link', {name: /カルテ 01/}).click();
+ await expect(page.getByLabel('原因の仮説')).toHaveValue('これはテスト\nこれはサンプル');
+ expect(await page.evaluate(() => localStorage.getItem('karte-summary-draft-1-root'))).toBeNull();
+ await page.getByLabel('原因の仮説').fill('保存しない入力');
+ expect(await page.evaluate(() => localStorage.getItem('karte-summary-draft-1-root'))).toBeNull();
+ page.once('dialog', dialog => dialog.accept());
+ await page.reload();
+ await expect(page.getByLabel('原因の仮説')).toHaveValue('これはテスト\nこれはサンプル');
 });
