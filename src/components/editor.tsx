@@ -5,7 +5,7 @@ import {CaseDetails} from './case-details';
 import {LoadingIndicator} from './loading-indicator';
 import {SaveActions} from './save-actions';
 import {ChartNumber} from './chart-number';
-import {api, ApiError, Chart, Field, fields, labels, placeholders, Revisions, storage} from '../lib/client';
+import {api, ApiError, Chart, Field, fields, labels, placeholders, Revisions} from '../lib/client';
 type Draft = {value: string; revision: number; dirty: boolean};
 type Drafts = Record<Field, Draft>;
 const empty = (): Drafts => ({issue: {value: '', revision: 0, dirty: false}, root: {value: '', revision: 0, dirty: false}, remedy: {value: '', revision: 0, dirty: false}});
@@ -18,11 +18,9 @@ export function Editor({group}: {group: number}) {
  const busy = useRef(false), fetching = useRef<Promise<Chart | null> | null>(null);
  const refreshRef = useRef<() => Promise<Chart | null>>(async () => null);
  const dirty = fields.some(field => drafts[field].dirty);
- const key = (field: Field) => `karte-summary-draft-${group}-${field}`;
  function update(next: Drafts) {draftRef.current = next; setDrafts(next);}
  useEffect(() => {
   let active = true, pending: Promise<Chart | null> | null = null;
-  for (const field of fields) storage('removeItem', key(field));
   update(empty());
   async function refresh(): Promise<Chart | null> {
    if (pending) return pending;
@@ -63,7 +61,7 @@ export function Editor({group}: {group: number}) {
    const snapshot = draftRef.current;
    const result = await api<{revisions: Revisions}>('karte?group=' + group, {method: 'PUT', body: JSON.stringify({issue: snapshot.issue.value, root: snapshot.root.value, remedy: snapshot.remedy.value, revisions: {issue: snapshot.issue.revision, root: snapshot.root.revision, remedy: snapshot.remedy.revision}})});
    const next = {...snapshot};
-   for (const field of fields) {next[field] = {...snapshot[field], revision: result.revisions[field], dirty: false}; storage('removeItem', key(field));}
+   for (const field of fields) {next[field] = {...snapshot[field], revision: result.revisions[field], dirty: false};}
    update(next); setMessage('カルテを保存しました。');
   } catch (error) {
    setMessage(error instanceof Error ? error.message : '保存できませんでした。もう一度お試しください。');

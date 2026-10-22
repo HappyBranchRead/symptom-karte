@@ -27,7 +27,7 @@ async function workshop(context: BrowserContext) {
  });
  return charts;
 }
-test('mobile selection, atomic save, reload, overview and old URLs work', async ({page, context}) => {
+test('mobile selection, atomic save, reload and overview work', async ({page, context}) => {
  await workshop(context);
  const errors: string[] = []; page.on('pageerror', error => errors.push(error.message));
  await page.goto('/');
@@ -84,8 +84,7 @@ test('mobile selection, atomic save, reload, overview and old URLs work', async 
  await page.getByRole('button', {name: '次のカルテ'}).click();
  await expect(page.locator('.case-picker-position')).toHaveText('2 / 4');
  await page.screenshot({path: 'test-results/overview-mobile.png'});
- await page.goto('/overview.html?group=1');
- await expect(page).toHaveURL(/\/overview\?group=1/);
+ await page.goto('/overview?group=1');
  await expect(page.locator('.case-picker-position')).toHaveText('1 / 4');
  await page.getByRole('link', {name: /カルテ 01.*を開く/}).click();
  await expect(page.getByLabel('試す処方', {exact: true})).toHaveValue('処方のテスト');
@@ -268,26 +267,4 @@ test('changing the selected problem conflicts with a concurrent hypothesis edit 
  await page.reload();
  await expect(page.getByLabel('着目した問題')).toHaveValue('確認と修正に時間がかかる');
  await expect(page.getByLabel('原因の仮説')).toHaveValue('参照できる情報が担当者で異なるかもしれない');
-});
-
-
-test('stale empty local drafts do not hide the saved answers when opening a chart', async ({page, context}) => {
- await workshop(context);
- await page.goto('/?g=1');
- await expect(page.getByLabel('原因の仮説')).toBeEnabled();
- await page.getByLabel('原因の仮説').fill('これはテスト\nこれはサンプル');
- await page.getByRole('button', {name: 'カルテを保存', exact: true}).click();
- await expect(page.getByText('カルテを保存しました。')).toBeVisible();
- await page.evaluate(() => localStorage.setItem('karte-summary-draft-1-root', JSON.stringify({value: '', revision: 0, expiresAt: Date.now() + 604800000})));
- await page.goto('/overview');
- await page.setViewportSize({width: 1280, height: 900});
- await expect(page.locator('.overview-grid').getByText('これはテスト\nこれはサンプル', {exact: true})).toBeVisible();
- await page.locator('.overview-grid').getByRole('link', {name: /カルテ 01/}).click();
- await expect(page.getByLabel('原因の仮説')).toHaveValue('これはテスト\nこれはサンプル');
- expect(await page.evaluate(() => localStorage.getItem('karte-summary-draft-1-root'))).toBeNull();
- await page.getByLabel('原因の仮説').fill('保存しない入力');
- expect(await page.evaluate(() => localStorage.getItem('karte-summary-draft-1-root'))).toBeNull();
- page.once('dialog', dialog => dialog.accept());
- await page.reload();
- await expect(page.getByLabel('原因の仮説')).toHaveValue('これはテスト\nこれはサンプル');
 });

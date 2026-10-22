@@ -1,6 +1,5 @@
 import type {NextConfig} from 'next';
 const config: NextConfig = {
- async redirects() {return [{source: '/overview.html', destination: '/overview', permanent: false}, {source: '/admin.html', destination: '/overview', permanent: false}];},
  async headers() {return [{source: '/(.*)', headers: [
   {key: 'X-Content-Type-Options', value: 'nosniff'},
   {key: 'Referrer-Policy', value: 'same-origin'},

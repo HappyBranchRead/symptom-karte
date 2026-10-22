@@ -16,16 +16,16 @@ test('Web adapter preserves group validation, JSON errors and no-store headers',
 
 test('Web adapter forwards reads and atomic saves to the existing handler', async () => {
  let captured;
- const db = {hgetall: async () => ({root: '原因', remedy: '処方', rootRev: 2, remedyRev: 3}), get: async () => null,
-  eval: async (...args) => {captured = args; return [1, 3, 4];}};
+ const db = {hgetall: async () => ({issue: '問題', root: '原因', remedy: '処方', issueRev: 1, rootRev: 2, remedyRev: 3}),
+  eval: async (...args) => {captured = args; return [1, 2, 3, 4];}};
  const route = createRoute('karte', () => db);
  const read = await route(new Request('http://localhost/api/karte?group=1'));
  assert.equal(read.status, 200);
- assert.deepEqual((await read.json()).revisions, {issue: 0, root: 2, remedy: 3});
- const saved = await route(new Request('http://localhost/api/karte?group=1', {method: 'PUT', body: JSON.stringify({root: '新しい原因', remedy: '新しい処方', revisions: {root: 2, remedy: 3}})}));
- assert.deepEqual((await saved.json()).revisions, {root: 3, remedy: 4});
+ assert.deepEqual((await read.json()).revisions, {issue: 1, root: 2, remedy: 3});
+ const saved = await route(new Request('http://localhost/api/karte?group=1', {method: 'PUT', body: JSON.stringify({issue: '新しい問題', root: '新しい原因', remedy: '新しい処方', revisions: {issue: 1, root: 2, remedy: 3}})}));
+ assert.deepEqual((await saved.json()).revisions, {issue: 2, root: 3, remedy: 4});
  assert.deepEqual(captured[1], ['board:1']);
- assert.deepEqual(captured[2].slice(0, 4), ['新しい原因', '新しい処方', 2, 3]);
+ assert.deepEqual(captured[2].slice(0, 6), ['新しい問題', '新しい原因', '新しい処方', 1, 2, 3]);
  const invalidMethod = await route(new Request('http://localhost/api/karte?group=1', {method: 'DELETE'}));
  assert.equal(invalidMethod.status, 405);
  assert.equal(invalidMethod.headers.get('Allow'), 'GET, PUT');

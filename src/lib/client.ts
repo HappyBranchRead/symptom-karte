@@ -18,7 +18,7 @@ export class ApiError extends Error {
 export async function api<T>(path: string, options: RequestInit = {}): Promise<T> {
  let response;
  try { response = await fetch('/api/' + path, {...options, cache: 'no-store', signal: AbortSignal.timeout(15000), headers: {'Content-Type': 'application/json', ...options.headers}}); }
- catch { throw new ApiError('通信を確認して、もう一度お試しください。下書きはこの端末に残っています。'); }
+ catch { throw new ApiError('通信を確認して、もう一度保存してください。入力した内容はこの画面を閉じるまで残っています。'); }
  let result;
  try { result = await response.json(); } catch { throw new ApiError('接続できませんでした。時間をおいて再試行してください。'); }
  if (!response.ok) throw new ApiError(result.error || '通信に失敗しました', response.status);
