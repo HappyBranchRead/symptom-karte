@@ -121,6 +121,9 @@ main.overview {max-width:1240px;}
 .case-subheading {color:var(--accent);font-size:14px;font-weight:600;margin:0;}
 .clinical-entry > .case-subheading {padding:18px 16px 18px 0;}
 .clinical-entry > .symptom-text {padding:18px 0 18px 20px;border-left:1px solid var(--line);margin:0;}
+.clinical-entry:has(> .case-scope) > .case-subheading {grid-row:span 2;}
+.clinical-entry > .case-scope {grid-column:2;padding:18px 0 0 20px;border-left:1px solid var(--line);margin:0;}
+.clinical-entry > .case-scope + .symptom-text {grid-column:2;padding-top:4px;}
 .case-background {margin-top:4px;padding-top:16px;border-top:1px solid var(--line);}
 .case-background[open] > summary {margin-bottom:16px;}
 .case-background > .case-subheading {margin:20px 0 12px;}
@@ -199,6 +202,9 @@ html[data-theme=dark] {
  .clinical-entry {grid-template-columns:1fr;}
  .clinical-entry > .case-subheading {padding:14px 0 8px;font-size:13px;}
  .clinical-entry > .symptom-text {padding:0 0 16px;border-left:0;}
+ .clinical-entry:has(> .case-scope) > .case-subheading {grid-row:auto;}
+ .clinical-entry > .case-scope,.clinical-entry > .case-scope + .symptom-text {grid-column:auto;}
+ .clinical-entry > .case-scope {padding:0 0 8px;border-left:0;}
  .case-background {padding-top:14px;}
  .direct-entry {margin-top:18px;padding-bottom:calc(var(--save-bar-height,100px) + 20px);}
  .summary-card {padding:0 18px 16px;}
