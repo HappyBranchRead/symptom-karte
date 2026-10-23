@@ -152,7 +152,7 @@ test('mobile picker selects by arrows, keyboard and touch before opening a chart
  await expect(position).toHaveText('4 / 4');
  await page.getByRole('link', {name: /カルテ 04.*を開く/}).click();
  await expect(page).toHaveURL(/\?g=4$/);
- await expect(page.getByRole('heading', {name: '2人が追加した、似た一覧画面'})).toBeVisible();
+ await expect(page.getByRole('heading', {name: 'AIが書いた説明と、1人のレビュー担当'})).toBeVisible();
  await expect(page.locator('.case-picker-track')).toHaveCount(0);
  await expect(page.getByText(/グループ\s*4/)).toHaveCount(0);
  await page.setViewportSize({width: 1280, height: 900});
