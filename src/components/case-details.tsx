@@ -8,7 +8,7 @@ export function CaseDetails({caseData: c}: {caseData: Case}) {
   <section className="clinical-entry"><h2 className="case-subheading">現在のAI活用とチームの運用</h2><p className="symptom-text">{c.operation}</p></section>
   <section className="clinical-entry"><h2 className="case-subheading">この場面で起きたこと</h2><p className="symptom-text">{c.symptom}</p></section>
   <section className="clinical-entry"><h2 className="case-subheading">その後の状況</h2><p className="symptom-text">{c.impact}</p></section>
-  <details className="case-background">
+  <details className="case-background" open>
    <summary>このカルテの前提</summary>
   <dl className="case-context">
    <div><dt>関係する機能</dt><dd>{c.feature}</dd></div>

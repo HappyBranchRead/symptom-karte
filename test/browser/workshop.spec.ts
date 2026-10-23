@@ -57,11 +57,11 @@ test('mobile selection, atomic save, reload and overview work', async ({page, co
  await expect(page.locator('.case-details').getByText(selectedSummary, {exact: true})).toBeVisible();
  await expect(page.locator('.case-details .case-scope')).toHaveText(selectedScope);
  await expect(page.getByLabel('原因の仮説')).toBeEnabled();
- await expect(page.getByRole('heading', {name: 'この時の進め方'})).toBeHidden();
- await page.locator('.case-background > summary').click();
  await expect(page.getByRole('heading', {name: 'この時の進め方'})).toBeVisible();
  await page.locator('.case-background > summary').click();
- await expect(page.getByText(/両方の機能はリリースできたが/)).toBeVisible();
+ await expect(page.getByRole('heading', {name: 'この時の進め方'})).toBeHidden();
+ await page.locator('.case-background > summary').click();
+ await expect(page.getByText(/レビュー担当者は同じ説明を2回し/)).toBeVisible();
  await page.getByLabel('着目した問題').fill('同じ確認と修正に時間を使っている');
  await page.getByLabel('原因の仮説').fill('原因のテスト');
  await page.getByLabel('試す処方', {exact: true}).fill('処方のテスト');
@@ -206,19 +206,20 @@ test('project context survives overview navigation and loading shows an indicato
  await expect(page.getByRole('button', {name: '接続を再試行'})).toHaveCount(0);
 });
 
-test('mobile detail folds context and keeps saving accessible while editing', async ({page, context}) => {
+test('mobile detail shows context first and keeps saving accessible while editing', async ({page, context}) => {
  await workshop(context);
  await page.setViewportSize({width: 427, height: 952});
  await page.goto('/?g=1');
  await expect(page.getByLabel('原因の仮説')).toBeEnabled();
  const background = page.locator('.case-background');
- await expect(background).not.toHaveAttribute('open');
+ await expect(background).toHaveAttribute('open');
+ await expect(background.getByText('AIに依頼したこと', {exact: true})).toBeVisible();
  await expect(page.getByRole('heading', {name: 'この場面で起きたこと'})).toBeVisible();
  await expect(page.getByRole('heading', {name: 'その後の状況'})).toBeVisible();
  const root = page.getByLabel('原因の仮説');
  await root.fill('前提を読み返しながら考えた原因');
  await background.locator('summary').click();
- await expect(background.getByText('AIに依頼したこと', {exact: true})).toBeVisible();
+ await expect(background.getByText('AIに依頼したこと', {exact: true})).toBeHidden();
  await background.locator('summary').click();
  await expect(root).toHaveValue('前提を読み返しながら考えた原因');
  const save = page.getByRole('button', {name: 'カルテを保存', exact: true});
